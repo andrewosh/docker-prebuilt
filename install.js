@@ -107,7 +107,7 @@ function dl (next) {
 function moveFiles (next) {
   var dir = path.join(__dirname, 'dist', 'docker')
   var p = binPaths[platform]
-  sudo.exec('cp ' + path.join(dir, '*') + ' ' + p, function (err, stdout, stderr) {
+  sudo.exec('cp ' + path.join(dir, '*') + ' ' + p, function (err) {
     return next(err)
   })
 }
@@ -115,7 +115,7 @@ function moveFiles (next) {
 // stop the Docker daemon if it is already running (after user prompt)
 function stopDocker (next) {
   debug('in stopDocker')
-  sudo.exec('killall docker || true', function  (err, stdout, stderr) {
+  sudo.exec('killall docker || true', function  (err) {
     return next(err)
   })
 }
@@ -123,8 +123,11 @@ function stopDocker (next) {
 // ensure that the current user is in the 'docker' group
 function configureUser (next) {
   debug('in configureUser')
-  sudo.exec('usermod -a -G docker ' + String(process.getuid()), function (err, stdout, stderr) {
-    return next(err)
+  sudo.exec('getent group docker || groupadd docker', function (err) {
+    if (err) return next(err)
+    sudo.exec('usermod -a -G docker ' + String(process.getuid()), function (err) {
+      return next(err)
+    })
   })
 }
 
