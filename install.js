@@ -107,28 +107,29 @@ function dl (next) {
 function moveFiles (next) {
   var dir = path.join(__dirname, 'dist', 'docker')
   var p = binPaths[platform]
-  sudo.exec('cp ' + path.join(dir, '*') + ' ' + p, function (err) {
-    return next(err)
-  })
+  sudo.exec('cp ' + path.join(dir, '*') + ' ' + p, next)
 }
 
 // stop the Docker daemon if it is already running (after user prompt)
 function stopDocker (next) {
   debug('in stopDocker')
-  sudo.exec('killall docker || true', function  (err) {
-    return next(err)
-  })
+  if (platform === 'linux') {
+    sudo.exec('killall docker || true', next)
+  }
 }
 
 // ensure that the current user is in the 'docker' group
 function configureUser (next) {
   debug('in configureUser')
-  sudo.exec('groupadd -f docker', function (err) {
-    if (err) return next(err)
-    sudo.exec('usermod -a -G docker ' + process.env['USER'], function (err) {
-      return next(err)
+  if (platform === 'linux') {
+    sudo.exec('groupadd -f docker', function (err) {
+      if (err) return next(err)
+      sudo.exec('usermod -a -G docker ' + process.env['USER'], function (err) {
+        if (err) return next(err)
+        sudo.exec('newgrp docker', next)
+      })
     })
-  })
+  }
 }
 
 // unzips and makes path.txt point at the correct executable
