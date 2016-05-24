@@ -77,6 +77,9 @@ debug('all requirements met, installing docker', version)
 var paths = {
   linux: 'dist/docker'
 }
+var binPaths = {
+  linux: '/usr/local/bin'
+}
 
 var filename = 'docker-{version}.tgz'
 
@@ -103,21 +106,19 @@ function dl (next) {
 // copy all binaries to /usr/bin
 function moveFiles (next) {
   var dir = path.join(__dirname, 'dist', 'docker')
-  proc.exec('npm bin -g', { encoding: 'utf8' }, function (err, bin) {
-    if (err) return next(err)
-    var trimmed = bin.trim()
-    fs.readdir(dir, function (err, files) {
-      async.each(files, function (f, cb) {
-        var before = path.join(dir, f)
-        var after = path.join(trimmed, f)
-        debug('moving', before, 'to', after)
-        fs.copy(path.join(dir, f), path.join(trimmed, f), function (err) {
-          return cb(err)
-        })
-      }, function (err) {
-        return next(err)
-      })
-    })
+  var p = binPaths[platform]
+  var options = {
+    cachePassword: true,
+    prompt: 'Enter sudo password to copy binaries to ' + p + ':',
+    spawnOptions: { encoding: 'utf8' }
+  }
+  var child = sudo(['cp', path.join(dir, '*'), p], options)
+  child.stdout.on('end', function (data) {
+    return next(null)
+  })
+  child.stderr.on('error', function  (err) {
+    return next(null)
+    child.destroy()
   })
 }
 
