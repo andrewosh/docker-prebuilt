@@ -9,7 +9,7 @@ var uname = require('node-uname')
 var semver = require('semver')
 var download = require('prebuilt-download')
 var capitalize = require('lodash.capitalize')
-var sudo = require('sudo')
+var sudo = require('sudo-prompt')
 var debug = require('debug')('docker-prebuilt')
 
 var pumpify = require('pumpify')
@@ -107,53 +107,23 @@ function dl (next) {
 function moveFiles (next) {
   var dir = path.join(__dirname, 'dist', 'docker')
   var p = binPaths[platform]
-  var options = {
-    cachePassword: true,
-    prompt: 'Enter sudo password to copy binaries to ' + p + ':',
-    spawnOptions: { encoding: 'utf8' }
-  }
-  var child = sudo(['cp', path.join(dir, '*'), p], options)
-  child.stdout.on('end', function (data) {
-    return next(null)
-  })
-  child.stderr.on('error', function  (err) {
-    return next(null)
-    child.destroy()
+  sudo.exec('cp ' + path.join(dir, '*') + ' ' + p, function (err, stdout, stderr) {
+    return next(err)
   })
 }
 
 // stop the Docker daemon if it is already running (after user prompt)
 function stopDocker (next) {
   debug('in stopDocker')
-  var options = {
-    cachePassword: true,
-    prompt: 'Enter sudo password to kill docker daemon:',
-    spawnOptions: { encoding: 'utf8' }
-  }
-  var child = sudo(['killall', 'docker'], options)
-  child.stdout.on('end', function (data) {
-    return next(null)
-  })
-  child.stderr.on('error', function  (err) {
-    return next(null)
-    child.destroy()
+  sudo.exec('killall docker || true', function  (err, stdout, stderr) {
+    return next(err)
   })
 }
 
 // ensure that the current user is in the 'docker' group
 function configureUser (next) {
   debug('in configureUser')
-  var options = {
-    cachePassword: true,
-    prompt: 'Enter sudo password to add user to docker group:',
-    spawnOptions: { encoding: 'utf8' }
-  }
-  var child = sudo(['useradd', '-G', 'docker',  String(process.getuid())], options)
-  child.stdout.on('end', function () {
-    return next(null)
-  })
-  child.stderr.on('data', function  (err) {
-    debug('in configureUser, err:', err)
+  sudo.exec('usermod -a -G docker ' + String(process.getuid()), function (err, stdout, stderr) {
     return next(err)
   })
 }
