@@ -123,9 +123,9 @@ function stopDocker (next) {
 // ensure that the current user is in the 'docker' group
 function configureUser (next) {
   debug('in configureUser')
-  sudo.exec('getent group docker || groupadd docker', function (err) {
+  sudo.exec('groupadd -f docker', function (err) {
     if (err) return next(err)
-    sudo.exec('usermod -a -G docker ' + String(process.getuid()), function (err) {
+    sudo.exec('usermod -a -G docker ' + process.env['USER'], function (err) {
       return next(err)
     })
   })
