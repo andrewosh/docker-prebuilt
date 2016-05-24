@@ -58,7 +58,6 @@ ensureMinVersion('xz', '4.9', function (v) {
   return raw.replace(/(alpha|beta)/g, '')
 })
 ensureMinVersion('ps', '0.0', function (v) { return trimSplit(v)[2] })
-ensureMinVersion('brctl', '0.0', function (v) { return trimSplit(v)[1] })
 
 // check if this docker version is already installed
 try {
