@@ -10,7 +10,6 @@ var semver = require('semver')
 var download = require('prebuilt-download')
 var capitalize = require('lodash.capitalize')
 var sudo = require('sudo-prompt')
-var pm2 = require('pm2')
 var debug = require('debug')('docker-prebuilt')
 
 var pumpify = require('pumpify')
