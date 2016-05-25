@@ -7,9 +7,6 @@
     "postinstall": "node install.js",
     "test": "tape test/*.js"
   },
-  "bin": {
-    "docker": "cli.js"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/andrewosh/docker-prebuilt.git"
