@@ -62,7 +62,6 @@ ensureMinVersion('ps', '0.0', function (v) { return trimSplit(v)[2] })
 // check if this docker version is already installed
 try {
   var dockerVersion = trimSplit(proc.execSync('docker --version', { encoding: 'utf8' }))[2].slice(0, -1)
-  console.log('dockerVersion:', dockerVersion)
   if (dockerVersion === version) {
     console.log('current docker version matches requested installation version')
     process.exit(0)

@@ -11,7 +11,6 @@ var versionCheck = function  (v1, v2, func) {
   }
   v1 = v1.split('.')
   v2 = v2.split('.')
-  console.log('padded1', pad(v1, 3), 'padded2', pad(v2, 3))
   return func(pad(v1, 3), pad(v2, 3))
 }
 
@@ -19,7 +18,6 @@ var ensureMinVersion = function (bin, version, strip) {
   try { 
     var raw = proc.execSync(bin + ' --version', { encoding: 'utf8' })
     var v  = strip(raw)
-    console.log('version:', version, 'v:', v)
     if (!versionCheck(v, version, semver.gte)) {
       console.error('docker requires', bin, '>=', version)
       process.exit(2)
