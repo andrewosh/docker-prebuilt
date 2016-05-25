@@ -10,6 +10,7 @@ var semver = require('semver')
 var download = require('prebuilt-download')
 var capitalize = require('lodash.capitalize')
 var sudo = require('sudo-prompt')
+var pm2 = require('pm2')
 var debug = require('debug')('docker-prebuilt')
 
 var pumpify = require('pumpify')
@@ -34,7 +35,7 @@ var onerror = function (err) {
 }
 
 // ensure that the kernel version is >= 3.10
-try { 
+try {
   var uname = uname()
   var kernel = uname.release.split('-')[0]
   if (!versionCheck(kernel, '3.10', semver.gte)) {
@@ -83,8 +84,16 @@ var binPaths = {
 
 var filename = 'docker-{version}.tgz'
 
-function dl (next) { 
-  debug('in dl')
+function sudoExec (cmd) {
+  return function (next) {
+    sudo.exec(cmd, function (err) {
+      return next(err)
+    })
+  }
+}
+
+function downloadFiles (next) {
+  debug('in downloadFiles')
   download({
     name: 'docker',
     filename: filename,
@@ -107,14 +116,18 @@ function dl (next) {
 function moveFiles (next) {
   var dir = path.join(__dirname, 'dist', 'docker')
   var p = binPaths[platform]
-  sudo.exec('cp ' + path.join(dir, '*') + ' ' + p, next)
+  sudo.exec('cp ' + path.join(dir, '*') + ' ' + p, function (err) { return next(err) })
 }
 
 // stop the Docker daemon if it is already running (after user prompt)
 function stopDocker (next) {
   debug('in stopDocker')
   if (platform === 'linux') {
-    sudo.exec('killall docker || true', next)
+    sudo.exec('killall docker || true', function (err) {
+      return next (err)
+    })
+  } else {
+    return next()
   }
 }
 
@@ -122,13 +135,37 @@ function stopDocker (next) {
 function configureUser (next) {
   debug('in configureUser')
   if (platform === 'linux') {
-    sudo.exec('groupadd -f docker', function (err) {
-      if (err) return next(err)
-      sudo.exec('usermod -a -G docker ' + process.env['USER'], function (err) {
-        if (err) return next(err)
-        sudo.exec('newgrp docker', next)
-      })
+    // forcing the group add will only produce a successful return code
+    async.series([
+      sudoExec('groupadd -f docker'),
+      sudoExec('usermod -a -G docker ' + process.env['USER'])
+    ], function (err) {
+      return next(err)
     })
+  } else {
+    return next()
+  }
+}
+
+// launch the daemon
+function installDaemon (next) {
+  debug('in installDaemon')
+  if (platform === 'linux') {
+    // check if systemd is being used, if so, add the systemd unit files
+    fs.exists('/etc/systemd/system', function (exists) {
+      if (exists) {
+        debug('using systemd')
+        var confPath = path.join(__dirname, 'daemon', 'systemd', '*')
+        async.series([
+          sudoExec('cp ' + confPath + ' /etc/systemd/system'),
+          sudoExec('systemctl restart docker')
+        ], function (err) {
+          return next(err)
+        })
+      }
+    })
+  } else {
+    return next()
   }
 }
 
@@ -152,11 +189,12 @@ function extractFiles (tarPath, next) {
 }
 
 async.waterfall([
-  dl,
+  downloadFiles,
   extractFiles,
   moveFiles,
   stopDocker,
-  configureUser
+  configureUser,
+  installDaemon
 ], function (err) {
   if (err) {
     console.error('could not install docker:', err)
