@@ -159,6 +159,7 @@ function installDaemon (next) {
         async.series([
           sudoExec(['sed -i', sedCmd, path.join(confPath, 'docker.service')].join(' ')),
           sudoExec(['cp', path.join(confPath, '*'), '/etc/systemd/system'].join(' ')),
+          sudoExec('systemctl daemon-reload'),
           sudoExec('systemctl restart docker')
         ], function (err) {
           return next(err)
