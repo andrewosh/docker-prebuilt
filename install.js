@@ -157,8 +157,8 @@ function installDaemon (next) {
         var confPath = path.join(__dirname, 'daemon', 'systemd')
         var sedCmd = '\'s/\$USER/' + process.env['USER'] + '/g\''
         async.series([
-          sudoExec('sed -i ' + sedCmd + ' ' + path.join(confPath, 'docker.service'))
-          sudoExec('cp ' + path.join(confPath, '*') + ' /etc/systemd/system'),
+          sudoExec(['sed -i', sedCmd, path.join(confPath, 'docker.service')].join(' ')),
+          sudoExec(['cp', path.join(confPath, '*'), '/etc/systemd/system'].join(' ')),
           sudoExec('systemctl restart docker')
         ], function (err) {
           return next(err)
