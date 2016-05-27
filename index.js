@@ -189,18 +189,20 @@ function extractFiles (tarPath, next) {
   })
 }
 
-async.waterfall([
-  downloadFiles,
-  extractFiles,
-  moveFiles,
-  stopDocker,
-  configureUser,
-  installDaemon
-], function (err) {
-  if (err) {
-    console.error('could not install docker:', err)
-    process.exit(2)
-  }
-  console.log('successfully installed docker')
-  process.exit(0)
-})
+module.exports = function () {
+  async.waterfall([
+    downloadFiles,
+    extractFiles,
+    moveFiles,
+    stopDocker,
+    configureUser,
+    installDaemon
+  ], function (err) {
+    if (err) {
+      console.error('could not install docker:', err)
+      process.exit(2)
+    }
+    console.log('successfully installed docker')
+    process.exit(0)
+  })
+}
